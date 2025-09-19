@@ -1,0 +1,35 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_PASSWORD: eld-route-planner-db-pwd
+      POSTGRES_USER: eld-route-planner-db-user
+      POSTGRES_DB: eld-route-planner-db-name
+    networks:
+      - my_network
+  eld-route-planner:
+    build:
+      context: .
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: core.settings.development
+    depends_on:
+      - db
+    networks:
+      - my_network
+
+volumes:
+  postgres_data:
+
+networks:
+  my_network:
+    driver: bridge

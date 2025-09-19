@@ -1,0 +1,92 @@
+version: 2.1
+
+orbs:
+  cloudrun: circleci/gcp-cloud-run@1.0.2
+
+commands:
+  install_rok8s_scripts:
+    steps:
+      - run:
+          name: Install Rok8s-Scripts
+          command: |
+            mkdir ${HOME}/rok8s-scripts && curl -L https://github.com/FairwindsOps/rok8s-scripts/archive/v11.1.3.tar.gz | \
+            tar xz -C ${HOME}/rok8s-scripts && ls ${HOME}/rok8s-scripts
+            echo 'export PATH=$PATH:${HOME}/rok8s-scripts/rok8s-scripts-11.1.3/bin' >> ${BASH_ENV}
+  deploy_static_files:
+    steps:
+      - setup_env_file
+      - run:
+          name: Deploy Static Files to Cloud
+          command: make staticfiles
+
+  setup_env_file:
+    steps:
+      - run:
+          name: setup_env_file
+          command: |
+            bash scripts/create_env_file.sh
+
+jobs:
+  test_eld:
+    machine:
+      image: ubuntu-2204:2024.05.1
+    working_directory: ~/eld-route-planner
+    steps:
+      - checkout
+      - setup_env_file
+      - run:
+          name: Run Tests
+          command: |
+            make ci-test
+  push_service_image:
+    machine:
+      image: ubuntu-2204:2024.05.1
+    working_directory: ~/eld-route-planner
+    steps:
+      - checkout
+      - install_rok8s_scripts
+      - run: prepare-gcloud
+      - run:
+          name: Configure Docker for Artifact Registry
+          command: |
+            gcloud auth configure-docker us-east1-docker.pkg.dev
+      - setup_env_file
+      - run:
+          name: Build Tag and Push eld-route-planner Docker Image
+          command: |
+            docker-build -f deploy/build.config
+            docker-push -f deploy/build.config
+  deploy_service_cloud_run:
+    machine:
+      image: ubuntu-2204:2024.05.1
+    parameters:
+      environment:
+        description: "The environment where to deploy the application"
+        default: staging
+        type: string
+      service-account-name:
+        description: The service account the app uses for access to GCP resources. It uses a different service account for deployment.
+        type: string
+        default: staging@radiant-destiny-370910.iam.gserviceaccount.com
+    steps:
+      - checkout
+      - deploy_static_files
+      - cloudrun/init
+      - cloudrun/deploy:
+          image: 'us-east1-docker.pkg.dev/${GOOGLE_PROJECT_ID}/eld-route-planner/xcixor:${CIRCLE_SHA1}'
+          platform: managed
+          region: us-east1
+          service-name: eld-route-planner-<< parameters.environment >>
+          unauthenticated: true
+          args: --service-account=<< parameters.service-account-name >>
+
+workflows:
+  eld-route-planner-deployment:
+    jobs:
+      - test_eld
+      - push_service_image:
+          requires:
+            - test_eld
+      - deploy_service_cloud_run:
+          requires:
+            - push_service_image
