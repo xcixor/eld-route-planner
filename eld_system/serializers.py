@@ -16,30 +16,66 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """User registration serializer with password handling"""
+    """User registration serializer with password handling and optional driver creation"""
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
 
+    # Optional driver fields
+    driver_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    initials = serializers.CharField(max_length=5, required=False, allow_blank=True)
+    home_operating_center = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    license_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    license_state = serializers.CharField(max_length=2, required=False, allow_blank=True)
+
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'password_confirm']
+        fields = [
+            'username', 'email', 'first_name', 'last_name', 'password', 'password_confirm',
+            'driver_number', 'initials', 'home_operating_center', 'license_number', 'license_state'
+        ]
 
     def validate(self, attrs):
-        """Validate password confirmation"""
+        """Validate password confirmation and driver fields"""
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Passwords do not match")
+
+        # If any driver field is provided, validate driver number uniqueness
+        driver_fields = ['driver_number', 'initials', 'home_operating_center', 'license_number', 'license_state']
+        if any(attrs.get(field) for field in driver_fields):
+            driver_number = attrs.get('driver_number')
+            if not driver_number:
+                raise serializers.ValidationError("Driver number is required when creating driver profile")
+
+            # Check if driver number already exists
+            from .models import Driver
+            if Driver.objects.filter(driver_number=driver_number).exists():
+                raise serializers.ValidationError("Driver number already exists")
+
         return attrs
 
     def create(self, validated_data):
-        """Create user with encrypted password"""
-        validated_data.pop('password_confirm')  # Remove confirmation field
+        """Create user with encrypted password and optional driver profile"""
+        # Remove non-user fields
+        validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+
+        # Extract driver fields
+        driver_fields = {}
+        for field in ['driver_number', 'initials', 'home_operating_center', 'license_number', 'license_state']:
+            if field in validated_data and validated_data[field]:
+                driver_fields[field] = validated_data.pop(field)
+
+        # Create user
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
+
+        # Create driver profile if driver fields provided
+        if driver_fields:
+            from .models import Driver
+            Driver.objects.create(user=user, **driver_fields)
+
         return user
-
-
 class DriverSerializer(serializers.ModelSerializer):
     """
     Driver serializer.
