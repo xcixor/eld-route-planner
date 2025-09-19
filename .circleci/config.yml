@@ -64,7 +64,6 @@ jobs:
         default: staging@radiant-destiny-370910.iam.gserviceaccount.com
     steps:
       - checkout
-      - deploy_static_files
       - cloudrun/init
       - cloudrun/deploy:
           image: 'us-east1-docker.pkg.dev/${GOOGLE_PROJECT_ID}/eld-route-planner/xcixor:${CIRCLE_SHA1}'
