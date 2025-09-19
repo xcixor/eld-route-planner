@@ -1,0 +1,14 @@
+speaker_summary.md
+new-full-stack-dev-assessment.docx.md
+inst.md
+.vscode
+*pycache*
+*env*
+*sqlite3*
+*pycache*
+*.editorconfig*
+notes.txt
+*.tmp*
+*django_cache*
+.http
+app/logs/
