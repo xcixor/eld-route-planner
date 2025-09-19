@@ -12,3 +12,4 @@ notes.txt
 *django_cache*
 .http
 app/logs/
+eld-frontend/

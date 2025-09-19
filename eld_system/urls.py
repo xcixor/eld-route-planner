@@ -13,10 +13,10 @@ router.register(r'duty-periods', views.DutyStatusPeriodViewSet)
 router.register(r'hos-cycles', views.HOSCycleTrackingViewSet)
 
 urlpatterns = [
-    path('api/auth/login/', views.LoginView.as_view(), name='login'),
-    path('api/auth/logout/', views.LogoutView.as_view(), name='logout'),
-    path('api/auth/logout-all/', views.LogoutAllView.as_view(), name='logout-all'),
-    path('api/auth/register/', views.RegisterView.as_view(), name='register'),
-    path('api/', include(router.urls)),
-    path('api/trip-planning/', views.TripPlanningView.as_view(), name='trip-planning'),
+    path('auth/login/', views.LoginView.as_view(), name='login'),
+    path('auth/logout/', views.LogoutView.as_view(), name='logout'),
+    path('auth/logout-all/', views.LogoutAllView.as_view(), name='logout-all'),
+    path('auth/register/', views.RegisterView.as_view(), name='register'),
+    path('', include(router.urls)),
+    path('trip-planning/', views.TripPlanningView.as_view(), name='trip-planning'),
 ]
