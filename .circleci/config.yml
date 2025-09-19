@@ -12,14 +12,12 @@ commands:
             mkdir ${HOME}/rok8s-scripts && curl -L https://github.com/FairwindsOps/rok8s-scripts/archive/v11.1.3.tar.gz | \
             tar xz -C ${HOME}/rok8s-scripts && ls ${HOME}/rok8s-scripts
             echo 'export PATH=$PATH:${HOME}/rok8s-scripts/rok8s-scripts-11.1.3/bin' >> ${BASH_ENV}
-
   setup_env_file:
     steps:
       - run:
           name: setup_env_file
           command: |
             bash scripts/create_env_file.sh
-
 jobs:
   test_eld:
     machine:
@@ -34,7 +32,7 @@ jobs:
             make ci-test
   push_service_image:
     machine:
-      image: ubuntu-2204:2024.05.1
+      image: ubuntu-2004:2024.01.2
     working_directory: ~/eld-route-planner
     steps:
       - checkout
@@ -52,7 +50,7 @@ jobs:
             docker-push -f deploy/build.config
   deploy_service_cloud_run:
     machine:
-      image: ubuntu-2204:2024.05.1
+      image: ubuntu-2004:2024.01.2
     parameters:
       environment:
         description: "The environment where to deploy the application"
@@ -66,7 +64,7 @@ jobs:
       - checkout
       - cloudrun/init
       - cloudrun/deploy:
-          image: 'us-east1-docker.pkg.dev/${GOOGLE_PROJECT_ID}/eld-route-planner/xcixor:${CIRCLE_SHA1}'
+          image: "us-east1-docker.pkg.dev/${GOOGLE_PROJECT_ID}/eld-route-planner/eld-route-planner:${CIRCLE_SHA1}"
           platform: managed
           region: us-east1
           service-name: eld-route-planner-<< parameters.environment >>
