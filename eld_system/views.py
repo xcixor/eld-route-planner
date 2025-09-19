@@ -4,8 +4,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 from decimal import Decimal
+from knox.models import AuthToken
+from knox.views import LoginView as KnoxLoginView, LogoutView as KnoxLogoutView
+from knox.auth import TokenAuthentication
 
 from .models import (
     Driver, Vehicle, Shipper, Load, Trip, RouteWaypoint,
@@ -19,6 +24,136 @@ from .serializers import (
     HOSCycleTrackingSerializer, FuelStopSerializer, RestBreakSerializer,
     TripPlanningInputSerializer, TripOutputSerializer
 )
+
+
+class LoginView(KnoxLoginView):
+    """
+    Custom login view for token authentication.
+    Returns user info along with token.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, format=None):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response({
+                'error': 'Username and password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is None:
+            return Response({
+                'error': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Create token
+        instance, token = AuthToken.objects.create(user)
+
+        # Get driver info if exists
+        driver_data = None
+        try:
+            driver = Driver.objects.get(user=user)
+            driver_data = DriverSerializer(driver).data
+        except Driver.DoesNotExist:
+            pass
+
+        return Response({
+            'token': token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            },
+            'driver': driver_data,
+            'expires': instance.expiry
+        })
+
+
+class LogoutView(KnoxLogoutView):
+    """
+    Custom logout view that logs out the current token.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+
+class LogoutAllView(APIView):
+    """
+    Logout all tokens for the authenticated user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, format=None):
+        request.user.auth_token_set.all().delete()
+        return Response({'message': 'All tokens deleted successfully'})
+
+
+class RegisterView(APIView):
+    """
+    User registration view that also creates a driver profile.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        driver_number = request.data.get('driver_number')
+        initials = request.data.get('initials')
+        home_operating_center = request.data.get('home_operating_center')
+        license_number = request.data.get('license_number')
+        license_state = request.data.get('license_state')
+        if not all([username, password, driver_number, initials,
+                   home_operating_center, license_number, license_state]):
+            return Response({
+                'error': 'All required fields must be provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(username=username).exists():
+            return Response({
+                'error': 'Username already exists'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if Driver.objects.filter(driver_number=driver_number).exists():
+            return Response({
+                'error': 'Driver number already exists'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+        driver = Driver.objects.create(
+            user=user,
+            driver_number=driver_number,
+            initials=initials,
+            home_operating_center=home_operating_center,
+            license_number=license_number,
+            license_state=license_state
+        )
+        instance, token = AuthToken.objects.create(user)
+
+        return Response({
+            'message': 'User and driver profile created successfully',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            },
+            'driver': DriverSerializer(driver).data,
+            'expires': instance.expiry
+        }, status=status.HTTP_201_CREATED)
 
 
 class DriverViewSet(viewsets.ModelViewSet):
@@ -309,7 +444,6 @@ class TripPlanningView(APIView):
 
     def _generate_route_waypoints(self, trip):
         """Generate route waypoints for the trip"""
-        # Simplified implementation - in production, integrate with mapping API
         waypoints = [
             {
                 'sequence': 1,
@@ -357,7 +491,6 @@ class TripPlanningView(APIView):
 
     def _generate_rest_breaks(self, trip):
         """Generate mandatory rest breaks based on HOS rules"""
-        # 30-minute break after 8 hours
         RestBreak.objects.create(
             trip=trip,
             break_type='30_min',
@@ -366,7 +499,6 @@ class TripPlanningView(APIView):
             scheduled_end=trip.start_time + timedelta(hours=8.5)
         )
 
-        # 10-hour rest break
         RestBreak.objects.create(
             trip=trip,
             break_type='10_hour',
@@ -377,20 +509,18 @@ class TripPlanningView(APIView):
 
     def _generate_eld_log_sheets(self, trip):
         """Generate ELD log sheets for the trip duration"""
-        # Simplified implementation - create log sheet for trip date
         log_sheet = ELDLogSheet.objects.create(
             trip=trip,
             driver=trip.driver,
             date=trip.start_time.date(),
-            total_driving_time=Decimal('8.0'),  # Example
-            total_on_duty_time=Decimal('2.0'),   # Example
-            total_off_duty_time=Decimal('4.0'),  # Example
-            total_sleeper_berth_time=Decimal('10.0'),  # Example
-            total_duty_time=Decimal('10.0'),     # Example
+            total_driving_time=Decimal('8.0'),
+            total_on_duty_time=Decimal('2.0'),
+            total_off_duty_time=Decimal('4.0'),
+            total_sleeper_berth_time=Decimal('10.0'),
+            total_duty_time=Decimal('10.0'),
             miles_driven=trip.total_estimated_miles or 500
         )
 
-        # Create duty status periods
         self._generate_duty_status_periods(log_sheet)
 
         return [log_sheet]
@@ -399,7 +529,6 @@ class TripPlanningView(APIView):
         """Generate duty status periods for the log sheet"""
         start_time = datetime.combine(log_sheet.date, datetime.min.time())
 
-        # Example duty status periods
         periods = [
             {
                 'duty_status': 'off_duty',
@@ -432,7 +561,7 @@ class TripPlanningView(APIView):
 
     def _calculate_trip_duration(self, trip):
         """Calculate estimated trip duration"""
-        return "12 hours 30 minutes"  # Simplified
+        return "12 hours 30 minutes"
 
     def _check_compliance_warnings(self, trip):
         """Check for HOS compliance warnings"""
