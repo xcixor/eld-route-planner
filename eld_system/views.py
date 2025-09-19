@@ -187,60 +187,9 @@ class RegisterView(generics.CreateAPIView):
         tags=['Authentication']
     )
 
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        email = request.data.get('email')
-        first_name = request.data.get('first_name', '')
-        last_name = request.data.get('last_name', '')
-        driver_number = request.data.get('driver_number')
-        initials = request.data.get('initials')
-        home_operating_center = request.data.get('home_operating_center')
-        license_number = request.data.get('license_number')
-        license_state = request.data.get('license_state')
-        if not all([username, password, driver_number, initials,
-                   home_operating_center, license_number, license_state]):
-            return Response({
-                'error': 'All required fields must be provided'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        if User.objects.filter(username=username).exists():
-            return Response({
-                'error': 'Username already exists'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        if Driver.objects.filter(driver_number=driver_number).exists():
-            return Response({
-                'error': 'Driver number already exists'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        user = User.objects.create_user(
-            username=username,
-            password=password,
-            email=email,
-            first_name=first_name,
-            last_name=last_name
-        )
-        driver = Driver.objects.create(
-            user=user,
-            driver_number=driver_number,
-            initials=initials,
-            home_operating_center=home_operating_center,
-            license_number=license_number,
-            license_state=license_state
-        )
-        instance, token = AuthToken.objects.create(user)
-
-        return Response({
-            'message': 'User and driver profile created successfully',
-            'token': token,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-            },
-            'driver': DriverSerializer(driver).data,
-            'expires': instance.expiry
-        }, status=status.HTTP_201_CREATED)
+    def create(self, request, *args, **kwargs):
+        """Handle user registration"""
+        return super().create(request, *args, **kwargs)
 
 
 class DriverViewSet(viewsets.ModelViewSet):
