@@ -1,12 +1,4 @@
 #!/bin/sh
-
-# Source environment variables from .env file
-if [ -f .env ]; then
-    echo "Loading environment variables from .env file..."
-    export $(grep -v '^#' .env | xargs)
-fi
-
-# Apply database migrations
 echo "Applying database migrations..."
 # Start the Django application
 uv run python manage.py makemigrations
