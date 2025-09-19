@@ -21,7 +21,7 @@ services:
     env_file:
       - .env
     environment:
-      DJANGO_SETTINGS_MODULE: core.settings.development
+      DJANGO_SETTINGS_MODULE: app.dev
     depends_on:
       - db
     networks:
