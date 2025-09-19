@@ -12,12 +12,6 @@ commands:
             mkdir ${HOME}/rok8s-scripts && curl -L https://github.com/FairwindsOps/rok8s-scripts/archive/v11.1.3.tar.gz | \
             tar xz -C ${HOME}/rok8s-scripts && ls ${HOME}/rok8s-scripts
             echo 'export PATH=$PATH:${HOME}/rok8s-scripts/rok8s-scripts-11.1.3/bin' >> ${BASH_ENV}
-  deploy_static_files:
-    steps:
-      - setup_env_file
-      - run:
-          name: Deploy Static Files to Cloud
-          command: make staticfiles
 
   setup_env_file:
     steps:
