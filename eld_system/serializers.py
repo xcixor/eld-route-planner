@@ -105,9 +105,10 @@ class DriverCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = [
-            'driver_number', 'initials', 'signature', 'home_operating_center',
+            'id', 'driver_number', 'initials', 'signature', 'home_operating_center',
             'license_number', 'license_state', 'user_data'
         ]
+        read_only_fields = ['id']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user_data')
