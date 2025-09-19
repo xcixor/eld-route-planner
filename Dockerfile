@@ -1,0 +1,55 @@
+# pull official base image
+FROM python:3.12-slim-bookworm
+# to suppress debian warnings
+ARG DEBIAN_FRONTEND=noninteractive
+
+# set work directory
+WORKDIR /usr/src/app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# install dependencies including cron and build tools
+RUN apt-get update && apt-get install -y \
+    cron \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# create the appropriate directories
+ENV HOME=/home/app
+ENV APP_HOME=/home/app
+RUN mkdir $APP_HOME
+WORKDIR $APP_HOME
+
+# copy uv files
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# set up the virtual environment path
+ENV PATH="$APP_HOME/.venv/bin:$PATH"
+
+# copy entrypoint-prod.sh
+COPY ./scripts/entrypoint.prod.sh $APP_HOME
+
+RUN chmod u+x $APP_HOME/entrypoint.prod.sh
+
+# copy project files
+COPY ./manage.py $APP_HOME/
+COPY ./app $APP_HOME/app/
+COPY ./eld_system $APP_HOME/eld_system/
+COPY ./tests $APP_HOME/tests/
+
+
+
+ARG DJANGO_SETTINGS_MODULE
+
+# copy env file
+COPY .env ./
+
+# run entrypoint.prod.sh
+ENTRYPOINT ["/home/app/entrypoint.prod.sh"]
