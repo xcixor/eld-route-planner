@@ -9,4 +9,6 @@ dependencies = [
     "django-rest-knox>=5.0.2",
     "djangorestframework>=3.16.1",
     "drf-yasg>=1.21.10",
+    "gunicorn>=23.0.0",
+    "whitenoise>=6.8.2",
 ]
