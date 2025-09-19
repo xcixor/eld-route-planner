@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
+from django.views.generic import RedirectView
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -47,8 +48,8 @@ schema_view = get_schema_view(
         ## Main Endpoint:
         **POST /api/plan-trip/** - Core functionality that takes trip inputs and returns route + ELD logs
         """,
-        terms_of_service="https://www.example.com/terms/",
-        contact=openapi.Contact(email="admin@eldrouter.com"),
+        terms_of_service="",
+        contact=openapi.Contact(email=""),
         license=openapi.License(name="MIT License"),
     ),
     public=True,
@@ -57,6 +58,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Root URL redirect to API documentation
+    path('', RedirectView.as_view(url='/redoc/', permanent=False), name='root-redirect'),
+
     path('admin/', admin.site.urls),
 
     # API Documentation
@@ -66,7 +70,7 @@ urlpatterns = [
     path('docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
 
     # Main API
-    path('', include('eld_system.urls')),
+    path('api/', include('eld_system.urls')),
 ]
 
 # Add debug toolbar in development
