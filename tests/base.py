@@ -190,6 +190,12 @@ class TestDataMixin:
     def get_valid_driver_data():
         """Get valid driver creation data"""
         return {
+            'user_data': {
+                'username': 'testdriver2',
+                'email': 'testdriver2@example.com',
+                'first_name': 'Test',
+                'last_name': 'Driver'
+            },
             'driver_number': 'D002',
             'initials': 'TD',
             'home_operating_center': 'Test Terminal',

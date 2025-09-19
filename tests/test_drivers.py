@@ -1,5 +1,22 @@
 """
-Driver endpoint tests for ELD Route Planning System
+Driver endpoint tests for ELD     def test_create_driver_success(self):
+        data = {
+            'user_data': {
+                'username': 'newdriver',
+                'email': 'driver@example.com',
+                'first_name': 'John',
+                'last_name': 'Doe'
+            },
+            'driver_number': 'DRV001',
+            'license_number': 'LICENSE123',
+            'license_state': 'TX',
+            'initials': 'JD'
+        }
+
+        response = self.authenticated_client.post(self.driver_list_url, data, format='json')
+        print(f"Response status: {response.status_code}")
+        print(f"Response data: {response.data}")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)m
 """
 
 from django.test import TestCase
@@ -34,6 +51,12 @@ class DriverEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
     def test_create_driver_success(self):
         """Test creating a new driver"""
         driver_data = {
+            'user_data': {
+                'username': 'newdriver',
+                'email': 'driver@example.com',
+                'first_name': 'John',
+                'last_name': 'Doe'
+            },
             'driver_number': 'D999',
             'initials': 'TD',
             'home_operating_center': 'Test Center',
