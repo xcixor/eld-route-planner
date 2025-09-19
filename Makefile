@@ -25,7 +25,7 @@ dev:
 	docker-compose up --build --force-recreate --remove-orphans --detach
 ## Start the prod environment
 prod:
-	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build --force-recreate --remove-orphans 
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build --force-recreate --remove-orphans --detach
 ## remove container
 tear-dev:
 	docker-compose down -v
