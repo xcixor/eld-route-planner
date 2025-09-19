@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +11,22 @@ from decimal import Decimal
 from knox.models import AuthToken
 from knox.views import LoginView as KnoxLoginView, LogoutView as KnoxLogoutView
 from knox.auth import TokenAuthentication
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+from .models import *
+from .serializers import *
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from datetime import datetime, timedelta
+from decimal import Decimal
+from knox.models import AuthToken
+from knox.views import LoginView as KnoxLoginView, LogoutView as KnoxLogoutView
+from knox.auth import TokenAuthentication
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .models import (
     Driver, Vehicle, Shipper, Load, Trip, RouteWaypoint,
@@ -28,10 +44,49 @@ from .serializers import (
 
 class LoginView(KnoxLoginView):
     """
-    Custom login view for token authentication.
-    Returns user info along with token.
+    **User Authentication - Login**
+
+    Authenticate user credentials and receive an access token for API requests.
     """
     permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Login with username and password to receive authentication token",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['username', 'password'],
+            properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING, description='Username'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, description='Password'),
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description="Login successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'token': openapi.Schema(type=openapi.TYPE_STRING, description='Authentication token'),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        ),
+                        'driver': openapi.Schema(type=openapi.TYPE_OBJECT, description='Driver profile if exists'),
+                        'expires': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                    }
+                )
+            ),
+            400: openapi.Response(description="Username and password are required"),
+            401: openapi.Response(description="Invalid credentials"),
+        },
+        tags=['Authentication']
+    )
 
     def post(self, request, format=None):
         username = request.data.get('username')
@@ -94,11 +149,43 @@ class LogoutAllView(APIView):
         return Response({'message': 'All tokens deleted successfully'})
 
 
-class RegisterView(APIView):
+class RegisterView(generics.CreateAPIView):
     """
-    User registration view that also creates a driver profile.
+    **User Registration**
+
+    Register a new user account for the ELD Route Planning System.
     """
+    queryset = User.objects.all()
+    serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Register a new user account",
+        request_body=UserRegistrationSerializer,
+        responses={
+            201: openapi.Response(
+                description="User created successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description="Validation error"),
+        },
+        tags=['Authentication']
+    )
 
     def post(self, request):
         username = request.data.get('username')
@@ -158,8 +245,10 @@ class RegisterView(APIView):
 
 class DriverViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing drivers.
-    Supports CRUD operations and driver-specific queries.
+    **Driver Management**
+
+    Complete CRUD operations for driver profiles including license information,
+    operating centers, and HOS compliance tracking.
     """
     queryset = Driver.objects.all()
     permission_classes = [permissions.IsAuthenticated]
@@ -169,6 +258,17 @@ class DriverViewSet(viewsets.ModelViewSet):
             return DriverCreateSerializer
         return DriverSerializer
 
+    @swagger_auto_schema(
+        operation_description="Get all trips for a specific driver",
+        responses={
+            200: openapi.Response(
+                description="Driver trips retrieved successfully",
+                schema=TripSerializer(many=True)
+            ),
+            404: openapi.Response(description="Driver not found"),
+        },
+        tags=['Drivers']
+    )
     @action(detail=True, methods=['get'])
     def trips(self, request, pk=None):
         """Get all trips for a specific driver"""
@@ -199,11 +299,23 @@ class DriverViewSet(viewsets.ModelViewSet):
 
 class VehicleViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing vehicles (tractors and trailers).
+    **Vehicle Management**
+
+    Manage tractors, trailers, and other vehicles used in the fleet.
+    Includes filtering by vehicle type and active status.
     """
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Filter vehicles by type and active status",
+        manual_parameters=[
+            openapi.Parameter('type', openapi.IN_QUERY, description="Filter by vehicle type (tractor/trailer)", type=openapi.TYPE_STRING),
+            openapi.Parameter('active', openapi.IN_QUERY, description="Filter by active status (true/false)", type=openapi.TYPE_BOOLEAN),
+        ],
+        tags=['Fleet Management']
+    )
 
     def get_queryset(self):
         queryset = Vehicle.objects.all()
@@ -279,7 +391,11 @@ class LoadViewSet(viewsets.ModelViewSet):
 
 class TripViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing trips with route planning and ELD functionality.
+    **Trip Management**
+
+    Comprehensive trip management including route planning, ELD log generation,
+    and HOS compliance tracking. This ViewSet supports the core trip functionality
+    for the ELD Route Planning System.
     """
     queryset = Trip.objects.all()
     permission_classes = [permissions.IsAuthenticated]
@@ -288,6 +404,15 @@ class TripViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return TripCreateSerializer
         return TripSerializer
+
+    @swagger_auto_schema(
+        operation_description="Filter trips by driver or status",
+        manual_parameters=[
+            openapi.Parameter('driver', openapi.IN_QUERY, description="Filter by driver ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('status', openapi.IN_QUERY, description="Filter by trip status", type=openapi.TYPE_STRING),
+        ],
+        tags=['Trips']
+    )
 
     def get_queryset(self):
         queryset = Trip.objects.all()
@@ -340,7 +465,7 @@ class TripViewSet(viewsets.ModelViewSet):
         trip.save()
 
         # Create initial ELD log sheet
-        log_sheet = ELDLogSheet.objects.create(
+        ELDLogSheet.objects.create(
             trip=trip,
             driver=trip.driver,
             date=datetime.now().date()
@@ -374,11 +499,186 @@ class TripViewSet(viewsets.ModelViewSet):
 
 class TripPlanningView(APIView):
     """
-    Main API endpoint for trip planning as required by the assessment.
-    Takes inputs (current location, pickup, dropoff, cycle hours) and
-    returns route information and ELD log sheets.
+    **ELD Route Planning System - Main Endpoint**
+
+    This is the core endpoint that fulfills the assessment requirements by taking trip details as inputs
+    and outputting route instructions and ELD logs. The system calculates optimal routes while ensuring
+    Hours of Service (HOS) compliance and generating required ELD documentation.
     """
     permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="""
+        **Core Trip Planning Endpoint**
+
+        Creates a comprehensive trip plan that includes:
+        - Route waypoints with GPS coordinates and instructions
+        - Required fuel stops with location details
+        - Mandatory rest breaks for HOS compliance
+        - Complete ELD log sheets with duty status periods
+        - Hours of Service cycle tracking
+
+        This endpoint fulfills the assessment requirement: "Build an app that takes trip details as inputs
+        and outputs route instructions and draws ELD logs as outputs."
+        """,
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['current_location', 'pickup_location', 'dropoff_location', 'current_cycle_used_hours', 'driver_id', 'tractor_id'],
+            properties={
+                'current_location': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='Current location (address or coordinates)',
+                    example='123 Main St, Chicago, IL 60601'
+                ),
+                'pickup_location': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='Pickup location (address or coordinates)',
+                    example='456 Industrial Way, Detroit, MI 48201'
+                ),
+                'dropoff_location': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='Final destination (address or coordinates)',
+                    example='789 Delivery Dr, Atlanta, GA 30309'
+                ),
+                'current_cycle_used_hours': openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    format='decimal',
+                    description='Hours already used in current cycle (0-70)',
+                    minimum=0,
+                    maximum=70,
+                    example=45.5
+                ),
+                'driver_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Driver ID from system',
+                    example=1
+                ),
+                'tractor_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Tractor/Vehicle ID from system',
+                    example=1
+                ),
+                'trailer_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Trailer ID (optional)',
+                    example=1
+                ),
+                'load_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Load ID (optional)',
+                    example=1
+                ),
+            },
+        ),
+        responses={
+            201: openapi.Response(
+                description="Trip plan created successfully with route and ELD logs",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'trip': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_STRING, format='uuid'),
+                                'trip_number': openapi.Schema(type=openapi.TYPE_STRING),
+                                'status': openapi.Schema(type=openapi.TYPE_STRING),
+                                'estimated_duration_hours': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'estimated_distance_miles': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'estimated_start_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                'estimated_end_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                            }
+                        ),
+                        'route_waypoints': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            description='Turn-by-turn route instructions',
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'sequence_number': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'latitude': openapi.Schema(type=openapi.TYPE_NUMBER, format='decimal'),
+                                    'longitude': openapi.Schema(type=openapi.TYPE_NUMBER, format='decimal'),
+                                    'location_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'instruction': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'distance_miles': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'estimated_arrival_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                }
+                            )
+                        ),
+                        'fuel_stops': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            description='Required fuel stops along route',
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'location_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'latitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'longitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'estimated_arrival_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                    'fuel_amount_gallons': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                }
+                            )
+                        ),
+                        'rest_breaks': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            description='Mandatory rest breaks for HOS compliance',
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'break_type': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'location_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'latitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'longitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                    'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                    'duration_hours': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                }
+                            )
+                        ),
+                        'eld_log_sheets': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            description='Generated ELD log sheets for compliance',
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'log_date': openapi.Schema(type=openapi.TYPE_STRING, format='date'),
+                                    'total_miles_driven': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                    'duty_status_periods': openapi.Schema(
+                                        type=openapi.TYPE_ARRAY,
+                                        items=openapi.Schema(
+                                            type=openapi.TYPE_OBJECT,
+                                            properties={
+                                                'status': openapi.Schema(type=openapi.TYPE_STRING),
+                                                'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                                'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                                'duration_hours': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                                'location': openapi.Schema(type=openapi.TYPE_STRING),
+                                            }
+                                        )
+                                    )
+                                }
+                            )
+                        ),
+                        'hos_compliance': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            description='Hours of Service compliance tracking',
+                            properties={
+                                'cycle_hours_used': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'cycle_hours_remaining': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'daily_driving_hours': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'daily_duty_hours': openapi.Schema(type=openapi.TYPE_NUMBER),
+                                'next_break_required_at': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                                'next_rest_required_at': openapi.Schema(type=openapi.TYPE_STRING, format='datetime'),
+                            }
+                        ),
+                    }
+                )
+            ),
+            400: openapi.Response(description="Invalid input data or validation error"),
+            401: openapi.Response(description="Authentication required"),
+            404: openapi.Response(description="Driver, vehicle, or other resource not found"),
+        },
+        tags=['Trip Planning']
+    )
 
     def post(self, request):
         """
@@ -401,7 +701,6 @@ class TripPlanningView(APIView):
 
         validated_data = serializer.validated_data
 
-        # Create the trip
         trip = Trip.objects.create(
             driver_id=validated_data['driver_id'],
             tractor_id=validated_data['tractor_id'],
@@ -584,11 +883,23 @@ class TripPlanningView(APIView):
 
 class ELDLogSheetViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing ELD log sheets.
+    **ELD Log Sheet Management**
+
+    Electronic Logging Device log sheets for DOT compliance and Hours of Service tracking.
+    These logs are generated automatically during trip planning and can be viewed/exported.
     """
     queryset = ELDLogSheet.objects.all()
     serializer_class = ELDLogSheetSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Filter ELD logs by driver or date",
+        manual_parameters=[
+            openapi.Parameter('driver', openapi.IN_QUERY, description="Filter by driver ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('date', openapi.IN_QUERY, description="Filter by log date (YYYY-MM-DD)", type=openapi.TYPE_STRING, format='date'),
+        ],
+        tags=['ELD Compliance']
+    )
 
     def get_queryset(self):
         queryset = ELDLogSheet.objects.all()

@@ -8,4 +8,5 @@ dependencies = [
     "cryptography>=46.0.1",
     "django-rest-knox>=5.0.2",
     "djangorestframework>=3.16.1",
+    "drf-yasg>=1.21.10",
 ]
