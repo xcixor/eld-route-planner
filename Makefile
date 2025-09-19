@@ -36,7 +36,7 @@ clean:
 ## Run CI tests.
 ci-test:
 	docker-compose up --build --force-recreate --remove-orphans --detach
-	docker-compose run eld-route-planner uv run python manage.py test tests/ -v 2
+	docker-compose exec eld-route-planner uv run python manage.py test tests/ -v 2
 
 ifeq (test,$(firstword $(MAKECMDGOALS)))
   TAG_ARGS := $(word 2, $(MAKECMDGOALS))
