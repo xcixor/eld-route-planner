@@ -10,13 +10,6 @@ WORKDIR /usr/src/app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# install dependencies including cron and build tools
-RUN apt-get update && apt-get install -y \
-    cron \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 

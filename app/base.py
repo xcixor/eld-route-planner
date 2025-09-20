@@ -33,6 +33,13 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "https://eld-route-planner-staging-1018057487898.us-east1.run.app"
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -136,7 +143,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'knox.auth.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # For Django admin
+        'knox.auth.TokenAuthentication',  # For API
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -174,7 +182,7 @@ SWAGGER_SETTINGS = {
             'description': 'Token-based authentication. Use format: Token <your_token_here>',
         }
     },
-    'USE_SESSION_AUTH': False,
+    'USE_SESSION_AUTH': True,  # Enable session auth for Django admin
     'JSON_EDITOR': True,
     'SUPPORTED_SUBMIT_METHODS': [
         'get',
