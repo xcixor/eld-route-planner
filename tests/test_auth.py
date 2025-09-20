@@ -75,6 +75,22 @@ class AuthenticationTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
 
         self.assertValidationError(response)
 
+    def test_user_registration_duplicate_email(self):
+        """Test registration with existing email"""
+        invalid_data = self.valid_user_data.copy()
+        invalid_data['email'] = self.test_user.email
+        invalid_data['username'] = 'different_username'  # Use different username
+
+        response = self.client.post(
+            self.register_url,
+            invalid_data,
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non_field_errors', response.data)
+        self.assertIn('email already exists', str(response.data))
+
     def test_user_registration_invalid_email(self):
         """Test registration with invalid email format"""
         invalid_data = self.valid_user_data.copy()

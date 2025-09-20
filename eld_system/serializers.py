@@ -39,6 +39,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Passwords do not match")
 
+        # Check email uniqueness
+        email = attrs.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("A user with this email already exists")
+
         # If any driver field is provided, validate driver number uniqueness
         driver_fields = ['driver_number', 'initials', 'home_operating_center', 'license_number', 'license_state']
         if any(attrs.get(field) for field in driver_fields):
