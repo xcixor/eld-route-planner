@@ -42,7 +42,7 @@ class BaseAPITestCase(APITestCase):
         # Create test vehicle
         self.test_vehicle = Vehicle.objects.create(
             vehicle_number='T001',
-            vehicle_type='tractor',
+            vehicle_type='truck',
             make='Freightliner',
             model='Cascadia',
             year=2023,
@@ -107,7 +107,7 @@ class BaseAPITestCase(APITestCase):
         """Helper to create additional test vehicles"""
         return Vehicle.objects.create(
             vehicle_number=vehicle_number,
-            vehicle_type='tractor',
+            vehicle_type='truck',
             make='Test Make',
             model='Test Model',
             year=2023,
@@ -183,7 +183,7 @@ class TestDataMixin:
             'dropoff_location': '789 Delivery Dr, Atlanta, GA 30309',
             'current_cycle_used_hours': 45.5,
             'driver_id': 1,
-            'tractor_id': 1
+            'truck_id': 1
         }
 
     @staticmethod
@@ -208,7 +208,7 @@ class TestDataMixin:
         """Get valid vehicle creation data"""
         return {
             'vehicle_number': 'T002',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Peterbilt',
             'model': '579',
             'year': 2022,

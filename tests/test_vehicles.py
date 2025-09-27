@@ -27,7 +27,7 @@ class VehicleEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
         """Test creating a new vehicle"""
         vehicle_data = {
             'vehicle_number': 'T999',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Test Make',
             'model': 'Test Model',
             'year': 2023,
@@ -56,7 +56,7 @@ class VehicleEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
     def test_create_vehicle_missing_required_fields(self):
         """Test creating vehicle with missing required fields"""
         invalid_data = {
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Test Make'
         }
 
@@ -72,7 +72,7 @@ class VehicleEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
         """Test creating vehicle with duplicate vehicle number"""
         first_data = {
             'vehicle_number': 'DUPLICATE001',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Test Make',
             'model': 'Test Model',
             'year': 2023,
@@ -128,7 +128,7 @@ class VehicleEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
 
         update_data = {
             'vehicle_number': 'UPDATED001',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Updated Make',
             'model': 'Updated Model',
             'year': 2024,
@@ -165,7 +165,7 @@ class VehicleEndpointTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
 
         update_data = {
             'vehicle_number': vehicle1.vehicle_number,
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Some Make',
             'model': 'Some Model',
             'year': 2023,
@@ -242,7 +242,7 @@ class VehicleValidationTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
         """Test year field accepts various values (no strict validation)"""
         valid_data = {
             'vehicle_number': 'YEAR001',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Test Make',
             'model': 'Test Model',
             'year': 1800,
@@ -262,7 +262,7 @@ class VehicleValidationTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
         """Test VIN field allows duplicates (no uniqueness constraint)"""
         first_data = {
             'vehicle_number': 'VIN001',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Test Make',
             'model': 'Test Model',
             'year': 2023,
@@ -349,7 +349,7 @@ class VehicleIntegrationTestCase(BaseAPITestCase, AuthTestMixin, TestDataMixin):
         """Test complete vehicle lifecycle"""
         vehicle_data = {
             'vehicle_number': 'LIFECYCLE001',
-            'vehicle_type': 'tractor',
+            'vehicle_type': 'truck',
             'make': 'Lifecycle Make',
             'model': 'Lifecycle Model',
             'year': 2023,
