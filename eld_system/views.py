@@ -472,7 +472,7 @@ class TripPlanningView(APIView):
         """,
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['current_location', 'pickup_location', 'dropoff_location', 'current_cycle_used_hours', 'driver_id', 'tractor_id'],
+            required=['current_location', 'pickup_location', 'dropoff_location', 'current_cycle_used_hours', 'driver_id', 'truck_id'],
             properties={
                 'current_location': openapi.Schema(
                     type=openapi.TYPE_STRING,
@@ -502,9 +502,9 @@ class TripPlanningView(APIView):
                     description='Driver ID from system',
                     example=1
                 ),
-                'tractor_id': openapi.Schema(
+                'truck_id': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description='Tractor/Vehicle ID from system',
+                    description='Truck/Vehicle ID from system',
                     example=1
                 ),
                 'trailer_id': openapi.Schema(
@@ -639,7 +639,7 @@ class TripPlanningView(APIView):
         - dropoff_location
         - current_cycle_used_hours
         - driver_id
-        - tractor_id
+        - truck_id
         - trailer_id (optional)
         - load_id (optional)
         """
@@ -652,7 +652,7 @@ class TripPlanningView(APIView):
 
         trip = Trip.objects.create(
             driver_id=validated_data['driver_id'],
-            tractor_id=validated_data['tractor_id'],
+            truck_id=validated_data['truck_id'],
             trailer_id=validated_data.get('trailer_id'),
             load_id=validated_data.get('load_id'),
             current_location=validated_data['current_location'],

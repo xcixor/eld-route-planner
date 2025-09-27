@@ -25,10 +25,10 @@ class Driver(models.Model):
 
 class Vehicle(models.Model):
     """
-    Vehicle information for tractors and trailers.
+    Vehicle information for trucks and trailers.
     """
     VEHICLE_TYPES = [
-        ('tractor', 'Tractor'),
+        ('truck', 'Tractor'),
         ('trailer', 'Trailer'),
     ]
 
@@ -83,11 +83,11 @@ class Trip(models.Model):
     """
     trip_id = models.UUIDField(default=uuid.uuid4, unique=True)
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE)
-    tractor = models.ForeignKey(
+    truck = models.ForeignKey(
         Vehicle,
         on_delete=models.CASCADE,
-        related_name='trips_as_tractor',
-        limit_choices_to={'vehicle_type': 'tractor'}
+        related_name='trips_as_truck',
+        limit_choices_to={'vehicle_type': 'truck'}
     )
     trailer = models.ForeignKey(
         Vehicle,

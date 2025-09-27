@@ -123,7 +123,7 @@ class DriverCreateSerializer(serializers.ModelSerializer):
 
 
 class VehicleSerializer(serializers.ModelSerializer):
-    """Serializer for Vehicle model (tractors and trailers)"""
+    """Serializer for Vehicle model (trucks and trailers)"""
 
     class Meta:
         model = Vehicle
@@ -203,8 +203,8 @@ class TripSerializer(serializers.ModelSerializer):
     """
     driver = DriverSerializer(read_only=True)
     driver_id = serializers.IntegerField(write_only=True)
-    tractor = VehicleSerializer(read_only=True)
-    tractor_id = serializers.IntegerField(write_only=True)
+    truck = VehicleSerializer(read_only=True)
+    truck_id = serializers.IntegerField(write_only=True)
     trailer = VehicleSerializer(read_only=True)
     trailer_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     load = LoadSerializer(read_only=True)
@@ -218,7 +218,7 @@ class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = [
-            'id', 'trip_id', 'driver', 'driver_id', 'tractor', 'tractor_id',
+            'id', 'trip_id', 'driver', 'driver_id', 'truck', 'truck_id',
             'trailer', 'trailer_id', 'load', 'load_id',
             'current_location', 'current_lat', 'current_lng',
             'pickup_location', 'pickup_lat', 'pickup_lng',
@@ -254,7 +254,7 @@ class TripCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = [
-            'driver_id', 'tractor_id', 'trailer_id', 'load_id',
+            'driver_id', 'truck_id', 'trailer_id', 'load_id',
             'current_location', 'pickup_location', 'dropoff_location',
             'current_cycle_used_hours', 'start_time'
         ]
@@ -380,7 +380,7 @@ class TripPlanningInputSerializer(serializers.Serializer):
         max_value=70
     )
     driver_id = serializers.IntegerField()
-    tractor_id = serializers.IntegerField()
+    truck_id = serializers.IntegerField()
     trailer_id = serializers.IntegerField(required=False, allow_null=True)
     load_id = serializers.IntegerField(required=False, allow_null=True)
 
@@ -392,9 +392,9 @@ class TripPlanningInputSerializer(serializers.Serializer):
             raise serializers.ValidationError("Driver does not exist")
 
         try:
-            tractor = Vehicle.objects.get(id=data['tractor_id'])
-            if tractor.vehicle_type != 'tractor':
-                raise serializers.ValidationError("Selected vehicle is not a tractor")
+            truck = Vehicle.objects.get(id=data['truck_id'])
+            if truck.vehicle_type != 'truck':
+                raise serializers.ValidationError("Selected vehicle is not a truck")
         except Vehicle.DoesNotExist:
             raise serializers.ValidationError("Tractor does not exist")
 
