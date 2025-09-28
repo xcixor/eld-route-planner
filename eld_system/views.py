@@ -250,7 +250,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     """
     **Vehicle Management**
 
-    Manage tractors, trailers, and other vehicles used in the fleet.
+    Manage trucks, trailers, and other vehicles used in the fleet.
     Includes filtering by vehicle type and active status.
     """
     queryset = Vehicle.objects.all()
@@ -279,13 +279,13 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return queryset
 
     @action(detail=False, methods=['get'])
-    def available_tractors(self, request):
-        """Get available tractors for assignment"""
-        tractors = Vehicle.objects.filter(
+    def available_trucks(self, request):
+        """Get available trucks for assignment"""
+        trucks = Vehicle.objects.filter(
             vehicle_type='tractor',
             is_active=True
         )
-        serializer = VehicleSerializer(tractors, many=True)
+        serializer = VehicleSerializer(trucks, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
