@@ -28,7 +28,7 @@ class Vehicle(models.Model):
     Vehicle information for trucks and trailers.
     """
     VEHICLE_TYPES = [
-        ('truck', 'Tractor'),
+        ('truck', 'Truck'),
         ('trailer', 'Trailer'),
     ]
 
@@ -113,7 +113,7 @@ class Trip(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('70'))]
     )
-    start_time = models.DateTimeField()
+    start_time = models.DateTimeField(auto_now_add=True)
     estimated_end_time = models.DateTimeField(null=True, blank=True)
     actual_end_time = models.DateTimeField(null=True, blank=True)
     total_estimated_miles = models.PositiveIntegerField(default=0)
