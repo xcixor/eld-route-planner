@@ -22,7 +22,7 @@ class Command(BaseCommand):
                     password=password
                 )
                 Driver.objects.create(
-                    user=admin.pk,
+                    user=admin,
                     driver_number='ADMIN001',
                     initials='AD',
                     home_operating_center='Headquarters',
