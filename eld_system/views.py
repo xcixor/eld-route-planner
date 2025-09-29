@@ -262,7 +262,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Filter vehicles by type and active status",
         manual_parameters=[
-            openapi.Parameter('type', openapi.IN_QUERY, description="Filter by vehicle type (tractor/trailer)", type=openapi.TYPE_STRING),
+            openapi.Parameter('type', openapi.IN_QUERY, description="Filter by vehicle type (truck/trailer)", type=openapi.TYPE_STRING),
             openapi.Parameter('active', openapi.IN_QUERY, description="Filter by active status (true/false)", type=openapi.TYPE_BOOLEAN),
         ],
         tags=['Fleet Management']
@@ -284,7 +284,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     def available_trucks(self, request):
         """Get available trucks for assignment"""
         trucks = Vehicle.objects.filter(
-            vehicle_type='tractor',
+            vehicle_type='truck',
             is_active=True
         )
         serializer = VehicleSerializer(trucks, many=True)

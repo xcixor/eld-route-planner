@@ -29,7 +29,7 @@ class Vehicle(models.Model):
     """
     VEHICLE_TYPES = [
         ('truck', 'Truck'),
-        ('tractor', 'Tractor'),
+        ('trailer', 'Trailer'),
     ]
 
     vehicle_number = models.CharField(max_length=20, unique=True)
@@ -95,7 +95,7 @@ class Trip(models.Model):
         null=True,
         blank=True,
         related_name='trips_as_trailer',
-        limit_choices_to={'vehicle_type': 'tractor'}
+        limit_choices_to={'vehicle_type': 'trailer'}
     )
     load = models.ForeignKey(Load, on_delete=models.SET_NULL, null=True, blank=True)
     current_location = models.CharField(max_length=255)

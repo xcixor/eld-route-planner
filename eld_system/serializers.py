@@ -464,7 +464,7 @@ class TripPlanningInputSerializer(serializers.Serializer):
             if truck.vehicle_type != 'truck':
                 raise serializers.ValidationError("Selected vehicle is not a truck")
         except Vehicle.DoesNotExist:
-            raise serializers.ValidationError("Tractor does not exist")
+            raise serializers.ValidationError("Truck does not exist")
 
         if data.get('trailer_id'):
             try:
