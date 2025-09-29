@@ -276,6 +276,47 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
     # Allow creating periods by passing the parent log sheet id
     log_sheet_id = serializers.IntegerField(write_only=True, required=True)
 
+    class CoordinateDecimalField(serializers.Field):
+        """
+        Accepts float/str/Decimal, rounds to 6 decimal places, validates lat/lng range,
+        and returns a Decimal suitable for the model DecimalField.
+        """
+        def __init__(self, *, kind: str, **kwargs):
+            super().__init__(**kwargs)
+            assert kind in ("lat", "lng"), "kind must be 'lat' or 'lng'"
+            self.kind = kind
+
+        def to_internal_value(self, data):
+            from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+            if data in (None, "", "null"):
+                return None
+            try:
+                d = Decimal(str(data)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+            except (InvalidOperation, ValueError, TypeError):
+                raise serializers.ValidationError("Invalid coordinate value")
+
+            # Range validation
+            if self.kind == "lat" and not (Decimal("-90") <= d <= Decimal("90")):
+                raise serializers.ValidationError("Latitude must be between -90 and 90.")
+            if self.kind == "lng" and not (Decimal("-180") <= d <= Decimal("180")):
+                raise serializers.ValidationError("Longitude must be between -180 and 180.")
+            return d
+
+        def to_representation(self, value):
+            # Return as float for convenience on the client
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except Exception:
+                return None
+
+    # Use custom fields to pre-quantize before model validation
+    start_latitude = CoordinateDecimalField(kind="lat", required=False, allow_null=True)
+    start_longitude = CoordinateDecimalField(kind="lng", required=False, allow_null=True)
+    end_latitude = CoordinateDecimalField(kind="lat", required=False, allow_null=True)
+    end_longitude = CoordinateDecimalField(kind="lng", required=False, allow_null=True)
+
     class Meta:
         model = DutyStatusPeriod
         fields = [
@@ -298,6 +339,17 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
             duration = obj.end_time - obj.start_time
             return int(duration.total_seconds() / 60)
         return 0
+
+    def validate(self, attrs):
+        """Basic grid minute sanity check and time alignment checks."""
+        gs = attrs.get('grid_start_minute')
+        ge = attrs.get('grid_end_minute')
+        if gs is not None and ge is not None:
+            if not (0 <= gs <= 1439 and 0 <= ge <= 1439):
+                raise serializers.ValidationError('Grid minutes must be in [0, 1439].')
+            if ge < gs:
+                raise serializers.ValidationError('grid_end_minute must be >= grid_start_minute.')
+        return attrs
 
 
 class ELDLogSheetSerializer(serializers.ModelSerializer):
