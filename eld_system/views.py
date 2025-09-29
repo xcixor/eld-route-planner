@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db import transaction, IntegrityError
 from decimal import Decimal
 from knox.models import AuthToken
 from knox.views import LoginView as KnoxLoginView, LogoutView as KnoxLogoutView
@@ -650,45 +652,63 @@ class TripPlanningView(APIView):
 
         validated_data = serializer.validated_data
 
-        trip = Trip.objects.create(
-            driver_id=validated_data['driver_id'],
-            truck_id=validated_data['truck_id'],
-            trailer_id=validated_data.get('trailer_id'),
-            load_id=validated_data.get('load_id'),
-            current_location=validated_data['current_location'],
-            pickup_location=validated_data['pickup_location'],
-            dropoff_location=validated_data['dropoff_location'],
-            current_cycle_used_hours=validated_data['current_cycle_used_hours'],
-            start_time=datetime.now(),
-            status='planned'
-        )
+        try:
+            with transaction.atomic():
+                # Enforce: one trip per driver per day
+                driver_id = validated_data['driver_id']
+                today = timezone.now().date()
 
-        # Generate route waypoints (simplified for demo)
-        self._generate_route_waypoints(trip)
+                # Check existing trips started today for the driver
+                if Trip.objects.filter(driver_id=driver_id, start_time__date=today).exists() or \
+                   ELDLogSheet.objects.filter(driver_id=driver_id, date=today).exists():
+                    return Response({
+                        'status_code': 400,
+                        'error': 'Another trip has already been setup for today'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Generate fuel stops (every 1,000 miles)
-        self._generate_fuel_stops(trip)
+                trip = Trip.objects.create(
+                    driver_id=validated_data['driver_id'],
+                    truck_id=validated_data['truck_id'],
+                    trailer_id=validated_data.get('trailer_id'),
+                    load_id=validated_data.get('load_id'),
+                    current_location=validated_data['current_location'],
+                    pickup_location=validated_data['pickup_location'],
+                    dropoff_location=validated_data['dropoff_location'],
+                    current_cycle_used_hours=validated_data['current_cycle_used_hours'],
+                    start_time=timezone.now(),
+                    status='planned'
+                )
 
-        # Generate rest breaks based on HOS rules
-        self._generate_rest_breaks(trip)
+                # Generate route waypoints (simplified for demo)
+                self._generate_route_waypoints(trip)
 
-        # Create ELD log sheets for the trip
-        log_sheets = self._generate_eld_log_sheets(trip)
+                # Generate fuel stops (every 1,000 miles)
+                self._generate_fuel_stops(trip)
 
-        # Prepare response data
-        response_data = {
-            'trip': TripSerializer(trip).data,
-            'route_waypoints': RouteWaypointSerializer(trip.waypoints.all(), many=True).data,
-            'fuel_stops': FuelStopSerializer(trip.fuel_stops.all(), many=True).data,
-            'rest_breaks': RestBreakSerializer(trip.rest_breaks.all(), many=True).data,
-            'log_sheets': ELDLogSheetSerializer(log_sheets, many=True).data,
-            'total_estimated_duration': self._calculate_trip_duration(trip),
-            'estimated_arrival': trip.estimated_end_time,
-            'compliance_warnings': self._check_compliance_warnings(trip),
-            'map_bounds': self._calculate_map_bounds(trip)
-        }
+                # Generate rest breaks based on HOS rules
+                self._generate_rest_breaks(trip)
 
-        return Response(response_data, status=status.HTTP_201_CREATED)
+                # Create ELD log sheets for the trip
+                log_sheets = self._generate_eld_log_sheets(trip)
+
+                # Prepare response data
+                response_data = {
+                    'trip': TripSerializer(trip).data,
+                    'route_waypoints': RouteWaypointSerializer(trip.waypoints.all(), many=True).data,
+                    'fuel_stops': FuelStopSerializer(trip.fuel_stops.all(), many=True).data,
+                    'rest_breaks': RestBreakSerializer(trip.rest_breaks.all(), many=True).data,
+                    'log_sheets': ELDLogSheetSerializer(log_sheets, many=True).data,
+                    'total_estimated_duration': self._calculate_trip_duration(trip),
+                    'estimated_arrival': trip.estimated_end_time,
+                    'compliance_warnings': self._check_compliance_warnings(trip),
+                    'map_bounds': self._calculate_map_bounds(trip)
+                }
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
+        except IntegrityError as ie:
+            return Response({'status_code': 400, 'error': str(ie)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response({'status_code': 500, 'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _generate_route_waypoints(self, trip):
         """Generate route waypoints for the trip"""
