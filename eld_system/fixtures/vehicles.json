@@ -1,0 +1,114 @@
+[
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1001,
+    "fields": {
+      "vehicle_number": "TRK-001",
+      "vehicle_type": "truck",
+      "make": "Freightliner",
+      "model": "Cascadia",
+      "year": 2021,
+      "vin": "1FTFW1E50MFA0001",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1002,
+    "fields": {
+      "vehicle_number": "TRK-002",
+      "vehicle_type": "truck",
+      "make": "Peterbilt",
+      "model": "579",
+      "year": 2020,
+      "vin": "1XPBDP9X0LD00002",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1003,
+    "fields": {
+      "vehicle_number": "TRK-003",
+      "vehicle_type": "truck",
+      "make": "Kenworth",
+      "model": "T680",
+      "year": 2022,
+      "vin": "1XKYD49X2NJ00003",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1004,
+    "fields": {
+      "vehicle_number": "TRK-004",
+      "vehicle_type": "truck",
+      "make": "Volvo",
+      "model": "VNL 760",
+      "year": 2019,
+      "vin": "4V4NC9EH0KN00004",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1005,
+    "fields": {
+      "vehicle_number": "TRK-005",
+      "vehicle_type": "truck",
+      "make": "International",
+      "model": "LT",
+      "year": 2023,
+      "vin": "3HSDZAPR0PN00005",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1006,
+    "fields": {
+      "vehicle_number": "TRC-001",
+      "vehicle_type": "tractor",
+      "make": "Great Dane",
+      "model": "Dry Van",
+      "year": 2018,
+      "vin": "GDTRAC0000000001",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1007,
+    "fields": {
+      "vehicle_number": "TRC-002",
+      "vehicle_type": "tractor",
+      "make": "Wabash",
+      "model": "Reefer",
+      "year": 2019,
+      "vin": "WBTRAC0000000002",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "eld_system.vehicle",
+    "pk": 1008,
+    "fields": {
+      "vehicle_number": "TRC-003",
+      "vehicle_type": "tractor",
+      "make": "Utility",
+      "model": "Flatbed",
+      "year": 2020,
+      "vin": "UTTRAC0000000003",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

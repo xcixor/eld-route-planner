@@ -29,7 +29,7 @@ class Vehicle(models.Model):
     """
     VEHICLE_TYPES = [
         ('truck', 'Truck'),
-        ('trailer', 'Trailer'),
+        ('tractor', 'Tractor'),
     ]
 
     vehicle_number = models.CharField(max_length=20, unique=True)
@@ -95,7 +95,7 @@ class Trip(models.Model):
         null=True,
         blank=True,
         related_name='trips_as_trailer',
-        limit_choices_to={'vehicle_type': 'trailer'}
+        limit_choices_to={'vehicle_type': 'tractor'}
     )
     load = models.ForeignKey(Load, on_delete=models.SET_NULL, null=True, blank=True)
     current_location = models.CharField(max_length=255)
@@ -229,7 +229,6 @@ class DutyStatusPeriod(models.Model):
         default=True,
         help_text="False for bracketed periods where truck didn't move"
     )
-    # Optional coordinates to visualize where a period starts/ends on the map
     start_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     start_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     end_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
