@@ -269,18 +269,12 @@ class TripCreateSerializer(serializers.ModelSerializer):
 
 
 class DutyStatusPeriodSerializer(serializers.ModelSerializer):
-    """
-    Serializer for individual duty status periods.
-    """
+    """Serializer for individual duty status periods."""
     duration_minutes = serializers.SerializerMethodField()
-    # Allow creating periods by passing the parent log sheet id
     log_sheet_id = serializers.IntegerField(write_only=True, required=True)
 
     class CoordinateDecimalField(serializers.Field):
-        """
-        Accepts float/str/Decimal, rounds to 6 decimal places, validates lat/lng range,
-        and returns a Decimal suitable for the model DecimalField.
-        """
+        """Coordinate field that rounds to 6 dp and validates range."""
         def __init__(self, *, kind: str, **kwargs):
             super().__init__(**kwargs)
             assert kind in ("lat", "lng"), "kind must be 'lat' or 'lng'"
@@ -303,7 +297,6 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
             return d
 
         def to_representation(self, value):
-            # Return as float for convenience on the client
             if value is None:
                 return None
             try:
@@ -311,7 +304,6 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
             except Exception:
                 return None
 
-    # Use custom fields to pre-quantize before model validation
     start_latitude = CoordinateDecimalField(kind="lat", required=False, allow_null=True)
     start_longitude = CoordinateDecimalField(kind="lng", required=False, allow_null=True)
     end_latitude = CoordinateDecimalField(kind="lat", required=False, allow_null=True)
@@ -334,14 +326,12 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def get_duration_minutes(self, obj):
-        """Calculate duration in minutes for the period"""
         if obj.start_time and obj.end_time:
             duration = obj.end_time - obj.start_time
             return int(duration.total_seconds() / 60)
         return 0
 
     def validate(self, attrs):
-        """Basic grid minute sanity check and time alignment checks."""
         gs = attrs.get('grid_start_minute')
         ge = attrs.get('grid_end_minute')
         if gs is not None and ge is not None:
