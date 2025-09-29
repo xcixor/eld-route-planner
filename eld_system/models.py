@@ -229,6 +229,11 @@ class DutyStatusPeriod(models.Model):
         default=True,
         help_text="False for bracketed periods where truck didn't move"
     )
+    # Optional coordinates to visualize where a period starts/ends on the map
+    start_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    start_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    end_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    end_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     grid_start_minute = models.PositiveIntegerField(
         help_text="Start position in 15-minute increments from midnight (0-1439)"
     )

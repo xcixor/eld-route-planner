@@ -281,7 +281,8 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'log_sheet_id', 'duty_status', 'start_time', 'end_time', 'location',
             'city', 'state', 'activity_description', 'vehicle_moved',
-            'grid_start_minute', 'grid_end_minute', 'duration_minutes'
+            'grid_start_minute', 'grid_end_minute', 'duration_minutes',
+            'start_latitude', 'start_longitude', 'end_latitude', 'end_longitude'
         ]
         read_only_fields = ['id']
 
