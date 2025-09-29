@@ -879,6 +879,13 @@ class DutyStatusPeriodViewSet(viewsets.ModelViewSet):
     serializer_class = DutyStatusPeriodSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        log_sheet_id = self.request.query_params.get('log_sheet')
+        if log_sheet_id:
+            qs = qs.filter(log_sheet_id=log_sheet_id)
+        return qs
+
 
 class HOSCycleTrackingViewSet(viewsets.ModelViewSet):
     """

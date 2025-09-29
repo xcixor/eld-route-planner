@@ -273,15 +273,23 @@ class DutyStatusPeriodSerializer(serializers.ModelSerializer):
     Serializer for individual duty status periods.
     """
     duration_minutes = serializers.SerializerMethodField()
+    # Allow creating periods by passing the parent log sheet id
+    log_sheet_id = serializers.IntegerField(write_only=True, required=True)
 
     class Meta:
         model = DutyStatusPeriod
         fields = [
-            'id', 'duty_status', 'start_time', 'end_time', 'location',
+            'id', 'log_sheet_id', 'duty_status', 'start_time', 'end_time', 'location',
             'city', 'state', 'activity_description', 'vehicle_moved',
             'grid_start_minute', 'grid_end_minute', 'duration_minutes'
         ]
         read_only_fields = ['id']
+
+    def create(self, validated_data):
+        log_sheet_id = validated_data.pop('log_sheet_id')
+        from .models import ELDLogSheet
+        validated_data['log_sheet'] = ELDLogSheet.objects.get(pk=log_sheet_id)
+        return super().create(validated_data)
 
     def get_duration_minutes(self, obj):
         """Calculate duration in minutes for the period"""
@@ -296,7 +304,9 @@ class ELDLogSheetSerializer(serializers.ModelSerializer):
     ELD Log Sheet serializer.
     """
     driver = DriverSerializer(read_only=True)
+    driver_id = serializers.IntegerField(write_only=True, required=True)
     trip = serializers.StringRelatedField(read_only=True)
+    trip_id = serializers.IntegerField(write_only=True, required=True)
     duty_periods = DutyStatusPeriodSerializer(many=True, read_only=True)
     total_hours_check = serializers.SerializerMethodField()
     is_24_hour_total = serializers.SerializerMethodField()
@@ -305,7 +315,7 @@ class ELDLogSheetSerializer(serializers.ModelSerializer):
     class Meta:
         model = ELDLogSheet
         fields = [
-            'id', 'trip', 'driver', 'date',
+            'id', 'trip', 'trip_id', 'driver', 'driver_id', 'date',
             'total_off_duty_time', 'total_sleeper_berth_time',
             'total_driving_time', 'total_on_duty_time',
             'total_duty_time', 'miles_driven',
@@ -315,6 +325,21 @@ class ELDLogSheetSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+    def create(self, validated_data):
+        driver_id = validated_data.pop('driver_id')
+        trip_id = validated_data.pop('trip_id')
+        validated_data['driver'] = Driver.objects.get(pk=driver_id)
+        validated_data['trip'] = Trip.objects.get(pk=trip_id)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        driver_id = validated_data.pop('driver_id', None)
+        trip_id = validated_data.pop('trip_id', None)
+        if driver_id is not None:
+            validated_data['driver'] = Driver.objects.get(pk=driver_id)
+        if trip_id is not None:
+            validated_data['trip'] = Trip.objects.get(pk=trip_id)
+        return super().update(instance, validated_data)
 
     def get_total_hours_check(self, obj):
         """Verify that all duty times add up to 24 hours"""
