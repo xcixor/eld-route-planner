@@ -31,6 +31,10 @@ COPY ./scripts/entrypoint.prod.sh $APP_HOME
 
 RUN chmod u+x $APP_HOME/entrypoint.prod.sh
 
+COPY ./scripts/load_fixtures.sh $APP_HOME
+
+RUN chmod u+x $APP_HOME/load_fixtures.sh
+
 # copy project files
 COPY ./manage.py $APP_HOME/
 COPY ./app $APP_HOME/app/
